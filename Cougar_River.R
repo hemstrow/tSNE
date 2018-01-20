@@ -1,8 +1,9 @@
 library(Rtsne)
 library(mmtsne)
 library(ggplot2)
+library(snpR)
 
-setwd("C:/Users/mattt/Dropbox/Cougar River Family Data")
+setwd("C:/Users/mattt/Dropbox/tSNE dat")
 
 sample_table <- read.table("14JUL2015_cougar_juvenile_master.txt",sep='', header=TRUE, colClasses = "character")
 samps <- sample_table[,1]
@@ -86,4 +87,10 @@ plot_data$pop <- formatted_table["samp"]
 # plotting PCA data
 ggplot(p_dat, aes(PC1, PC2, color = pop)) + geom_point()
 
-multiple <- mmtsne(formatted_table[,-1])
+
+# A series of commands to intall Will's R package and check it
+#install.packages("devtools")
+#library(devtools)
+#install_github("hemstrow/Genomics/snpR")
+#library(snpR)
+#?Tajimas_D
