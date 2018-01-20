@@ -1,13 +1,12 @@
 ##############################
 #whole shbang, minus XIX
-genotypes <- read.table("../../../Stickleback/Full Data/2017_reruns/snps_numeric_filt.txt", header = T,
-                        stringsAsFactors = F, colClasses = "character")
+setwd("~/Stickleback/Full Data/2017_reruns/")
+#genotypes <- read.table("snps_numeric_filt.txt", header = T,
+#                        stringsAsFactors = F, colClasses = "character")
 
-test <- genotypes[1:100,]
-
-pa_genotypes <- format_snps(genotypes[genotypes$group != "groupXIX",], 3, 8, "0000", "00", l_names = genotypes[genotypes$group != "groupXIX",]$snp, interp_miss = T)
-
-
+#pa_genotypes <- format_snps(genotypes[genotypes$group != "groupXIX",], 3, 7, "0000", "00", l_names = genotypes[genotypes$group != "groupXIX",]$snp, interp_miss = T)
+#write.table(pa_genotypes,"~/GitHub/tSNE_data/stickleback_pa.txt", col.names = T, quote = F, sep = "\t")
+pa_genotypes <- read.table("~/GitHub/tSNE_data/stickleback_pa.txt", stringsAsFactors = F, colClasses = "character", header = T)
 
 library(Rtsne)
 library(mmtsne)
