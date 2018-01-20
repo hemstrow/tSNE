@@ -81,7 +81,7 @@ metadata <- metadata[,1]
 
 #dupes <- !duplicated.matrix(as.matrix(sample_table))
 
-plot_data$pop <- formatted_table["samp"]
+comb_pca <- merge(x = sibdata, plot_data, by = "off")
 
 
 # plotting PCA data
