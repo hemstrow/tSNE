@@ -1,77 +1,66 @@
-#import bamlist and annotations
-bamlist <- read.table("bamlist.txt")
-DNA274 <- "ACAGTG"
-DNA275 <- "CAGATC"
-plate2 <- read.csv("plate2_MFMB1.csv", header = T, skip = 1)
-plate3 <- read.csv("plate3_MFMB2.csv", header = T, skip = 1)
+setwd("~/2017-2018/Monarchs/")
+genotypes <- read.table("flt_genotypes.txt", header = T, stringsAsFactors = F)
+genotypes_meta <- genotypes[,1:3]
+genotypes_data <- genotypes[,4:ncol(genotypes)]
 
-plate2 <- rbind(plate2[,1:3], setNames(plate2[,4:6], colnames(plate2)[1:3]))
-plate3 <- rbind(plate3[,1:3], setNames(plate3[,4:6], colnames(plate3)[1:3]))
+#order the data by pop name and perpare l for formatting.
+abnames <- substr(colnames(genotypes_data), 1, 3)
+names.tab <- table(abnames)
+colnames(genotypes_data) <- abnames
+colnames(genotypes_data)[colnames(genotypes_data) == "NZ2" | colnames(genotypes_data) == "NZR"] <- "NZ"
+genotypes_data <- genotypes_data[,order(colnames(genotypes_data))]
+genotypes <- cbind(genotypes_meta, genotypes_data)
+remove(genotypes_data, genotypes_meta)
 
-barcodes <- read.table("RAD barcodes.txt", header = T)
+names.tab <- c(names.tab, NZ = sum(names.tab["NZR"] + names.tab["NZ2"]))
+names.tab <- names.tab[-which(names(names.tab) %in% c("NZR", "NZ2"))]
+names.tab <- names.tab[order(names(names.tab))]
 
-#get sample info
+l <- list(names(names.tab), as.numeric(names.tab))
 
-plate2 <- merge(plate2, barcodes, by = "Well")
-plate3 <- merge(plate3, barcodes, by = "Well")
-sampinfo <- data.frame(plate = substr(bamlist[,1], 8, 13), ind = substr(bamlist[,1], 20, 27))
+#sub_snps <- sample(nrow(genotypes), 10000, replace = F)
+#gsub <- genotypes[sub_snps,]
 
-plate2 <- merge(sampinfo[sampinfo$plate == DNA274,], plate2, by.x = "ind", by.y = "Index")
-plate3 <- merge(sampinfo[sampinfo$plate == DNA275,], plate3, by.x = "ind", by.y = "Index")
-
-combplates <- rbind(plate2, plate3)
-
-#import, name, and sort raw genotypes.
-raw_genos <- read.table("genotypes.geno", header = F, stringsAsFactors = F)
-colnames(raw_genos) <- c("group", "position", paste0(combplates$Pop, 1:nrow(combplates)))
-raw_genos <- cbind(snp = 1:nrow(raw_genos), raw_genos)
-
-#filter raw genotypes.
-#flt_genos <- filter_snps(raw_genos, 3, T, T, 0.05, l, 0.55, 75)
-rg1 <- raw_genos[1:936600,]
-rg2 <- raw_genos[936601:nrow(raw_genos),]
-remove(raw_genos)
-
-flt_genos_p1 <- filter_snps(rg1, 3, T, T, 0.05, hf_hets =  0.55, min_ind =  100)
-flt_genos_p2 <- filter_snps(rg2, 3, T, T, 0.05, hf_hets = 0.55, min_ind = 100)
-flt_genos <- rbind(flt_genos_p1, flt_genos_p2)
-write.table(flt_genos, "flt_genotypes2.txt", col.names = T, quote = F, sep = "\t")
+#pa_snps <- format_snps(gsub, 3, 7, l_names = gsub[,1])
+#writeLines(as.character(sub_snps), "subset_indices.txt", sep = "\t")
+#write.table(pa_snps, "pa_subset.txt", col.names = T, quote = F, sep = "\t")
 
 
-sub_snps <- sample(1:nrow(flt_genos), 8000)
-pa_snps <- format_snps(flt_genos[sub_snps,], 3, 8, l_names = flt_genos$snp[sub_snps])
+pa_snps <- read.table("pa_subset.txt", header = T, stringsAsFactors = F)
+sub_snps <- readLines("subset_indices.txt")
+sub_snps <- as.numeric(unlist(strsplit(sub_snps, "\t")))
+pops <- gsub("\\.[0-9]+", "", pa_snps$samp)
 
-
+#
+mc <- 8000
 
 #pca
 pca_raw <- prcomp(pa_snps[,-1])
 pca <- as.data.frame(pca_raw$x)
-pca$pop <- combplates$Pop
-pca$pop <- substr(pca$pop, 1, 3)
-pca[pca$pop == "NZ2",]$pop <- "NZ"
-pca[pca$pop == "NZR",]$pop <- "NZ"
+pca$pop <- pops
 
 #which samples are crappy?
-counts <- ifelse(flt_genos[sub_snps, 4:ncol(flt_genos)] == "NN", FALSE, TRUE)
+counts <- ifelse(genotypes[sub_snps, 4:ncol(genotypes)] == "NN", FALSE, TRUE)
 counts <- colSums(counts)
 
-gpa_snps <- pa_snps[counts >= 4000,]
+gpa_snps <- pa_snps[counts >= mc,]
 
 library(ggplot2)
 ggplot(pca, aes(PC1, PC2, color = pop)) + geom_point() + scale_color_brewer(palette = "Set3")
 
 library(Rtsne)
+library(mmtsne)
 hbout <- hbeta(gpa_snps[,-1])
 out <- Rtsne(gpa_snps[,-1], initial_dims = 50, dims = 2, perplexity = hbout$H, theta = 0, max_iter = 5000, verbose = TRUE)
 
 dists <- as.data.frame(out$Y)
-dists$pop <- combplates$Pop[counts >= 4000]
+dists$pop <- pops[counts >= mc]
 ggplot(dists, aes(x = V1, y = V2, color = pop)) + geom_point() + theme_bw()
 
 
 #PCA with the filtered data
 gpca_raw <- prcomp(gpa_snps[,-1])
 gpca <- as.data.frame(gpca_raw$x)
-gpca$pop <- combplates$Pop[counts >= 4000]
+gpca$pop <- pops[counts >= mc]
 gpca$pop <- substr(gpca$pop, 1, 3)
 ggplot(gpca, aes(PC1, PC2, color = pop)) + geom_point() + theme_bw()

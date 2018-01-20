@@ -1,7 +1,6 @@
 ###############################################
 #import and prepare data
 
-#check stuff
 library(readr)
 Fr.genos <- read_delim("~/2016-2017/tSNE/tSNE_rproject/Fraser River data for t-SNE test.txt", 
                                                "\t", escape_double = FALSE, trim_ws = TRUE)
