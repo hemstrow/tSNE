@@ -54,12 +54,14 @@ counts <- colSums(counts)
 #PCA:
 pca <- PCAfromPA(pa_snps, 2, 8000, counts)
 
-hbout <- hbeta(gpa_snps[,-1])
-out <- Rtsne(gpa_snps[,-1], initial_dims = 50, dims = 2, perplexity = hbout$H, theta = 0, max_iter = 5000, verbose = TRUE)
+pca[,-c(1,2)]
+
+hbout <- hbeta(pa_snps[,-c(1,2)])
+out <- Rtsne(as.matrix(pa_snps[,-c(1,2)]), initial_dims = 50, dims = 2, perplexity = hbout$H, theta = 0, max_iter = 5000, verbose = TRUE, check_duplicates = FALSE)
 
 dists <- as.data.frame(out$Y)
 dists$pop <- pops[counts >= mc]
-ggplot(dists, aes(x = V1, y = V2, color = pop)) + geom_point() + theme_bw()
+ggplot(dists, aes(x = V1, y = V2)) + geom_point() + theme_bw()
 
   
 

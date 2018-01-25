@@ -39,6 +39,45 @@ PCAfromPA <- function(x, ecs, mc = FALSE, counts = FALSE){
   out <- ggplot(pca, aes(PC1, PC2, color = pop)) + geom_point() + theme_bw() + 
     scale_color_manual(values = cbbPalette) + guides(color = guide_legend(title="Population"))
   
-  
   return(list(raw = pca_r, plot = out))
 }
+
+
+# tsne fxn using Rtsne, which uses Barnes-Hut simulation at theta>0 and returns more data than tsne()
+tsnefromPA <- function(data, dims = FALSE, initial_dims, perplex = FALSE, gravity = FALSE, iter = FALSE, ecs , mc = FALSE, counts = FALSE){
+  #grab metadata and data
+  meta <- data[,1:ecs]
+  data <- data[,(ecs+1):ncol(data)]
+  
+  #filter if requested
+  if(mc & counts){
+    keeps <- which(counts >= mc)
+    data <- data[keeps,]
+    meta <- meta[keeps,]
+  }
+  else if ((mc & !counts) | (!mc & counts)){
+    stop("Counts and mc must either both be defined or neither must be.")
+  }
+  if(!dims){
+    dims <- 2
+  }
+  if(!perplex){
+    perp <- hbeta(sturg_matrix, beta = 1)
+    perplex <- perp$H
+  }
+  if(!iter){
+    iter <- 5000
+  }
+  if(!gravity){
+    gravity <- 0
+  }
+  tsne.out = Rtsne(data, dims = dims, perplexity = perplex, theta = gravity, max_iter = iter, verbose=TRUE)
+  saved_tsne2 <<- tsne.out
+  tsne_plot <- as.data.frame(tsne.out$Y)
+  tsne_colors <- plot_colors[,1]
+  tsne_plot$colors <- tsne_colors
+  require(ggplot2)
+  cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  ggplot(tsne_plot, aes(tsne_plot[,1],tsne_plot[,2], color = colors))  + geom_point() + theme_bw()
+}
+
