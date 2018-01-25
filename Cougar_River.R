@@ -71,17 +71,16 @@ ggplot(comb, aes(comb$X1, comb$X2, color = dad)) + geom_point(aes(fill=mom), pch
 
 write.table(comb, file = "2011_juv_tsne.csv")
 
-pca <- prcomp(t(formatted_table[,-1]))
+pca <- prcomp(t(single_year_class[,-1]))
 plot(pca$rotation)
 p_dat <- as.data.frame(pca$rotation)
-p_dat$pop <- metadata
-
+plot(p_dat$PC4,p_dat$PC5)
 metadata <- metadata[,1]
 #metadata <- metadata[dupes]
 
 #dupes <- !duplicated.matrix(as.matrix(sample_table))
 
-comb_pca <- merge(x = sibdata, plot_data, by = "off")
+comb_pca <- merge(x = sibdata, p_dat, by = "off")
 
 
 # plotting PCA data
@@ -92,5 +91,8 @@ ggplot(p_dat, aes(PC1, PC2, color = pop)) + geom_point()
 #install.packages("devtools")
 #library(devtools)
 #install_github("hemstrow/Genomics/snpR")
+#update.packages("snpR")
 #library(snpR)
 #?Tajimas_D
+library(snpR)
+format_snps
