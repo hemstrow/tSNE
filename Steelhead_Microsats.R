@@ -1,48 +1,26 @@
-library(Rtsne)
-library(mmtsne)
 library(ggplot2)
+###########################################
+#get data and format.
+setwd("~/GitHub/tSNE_data/steelhead/msats/")
 
-sample_table <- read.table("groupedfp90_genepop.txt",sep='', header=FALSE, colClasses = "character")
+#genos <- read.table("steelhead_genotypes.txt", sep='', header=FALSE, colClasses = "character")
+#genos <- t(genos)
+#pops <- genos[1,]
+#genos <- genos[-1,]
+#colnames(genos) <- pops
+#lnam <- c("Oki23", "Ssa407", "mSsa408", "Ots209", "OtsG249b", "OtsG85", "Omy27", "Omy1001", "Ots243", "Ots409", "OtsG3", "Ots212", "Omm1087")
+#genos <- cbind(locus = lnam, lnum = 1:13, genos)
 
-sample_table <- t(sample_table)
-pops <- sample_table[1,]
-sample_table <- sample_table[-1,]
+#pa_genos <- format_snps(genos, 2, 7, "msat_2", "00", lnames = lnam)
+#pa_genos <- cbind(samp = 1:nrow(pa_genos), pop = pa_genos$samp, pa_genos[,-1])
 
-sample_table <- sample_table[-c(1:3),]
+#saveRDS(pa_genos, "pa_genos.RDS")
 
-lnam <- c("Oki23", "Ssa407", "mSsa408", "Ots209", "OtsG249b", "OtsG85", "Omy27", "Omy1001", "Ots243", "Ots409", "OtsG3", "Ots212", "Omm1087")
-formatted_table <- format_snps(sample_table, 0, output = 8, 
-                               input_form = "msat_2", miss = "00", l_names = lnam, 
-                               interp_miss = TRUE)
+#read data in
+pa_genos <- readRDS("pa_genos.RDS")
 
+#######################################
+#run PCA and tSNE
 
-hbeta(formatted_table[,-1], beta = 1)
-
-tsne <- Rtsne(formatted_table[,-1], dims = 2, initial_dims = 50, perplexity = 25, theta = 0, 
-              check_duplicates = FALSE, pca = TRUE, max_iter = 1000, verbose = TRUE, 
-              is_distance = FALSE)
-plot(tsne$Y)
-
-plot_data <- data.frame(tsne$Y)
-
-pca <- prcomp(t(formatted_table[,-1]))
-plot(pca$rotation)
-p_dat <- as.data.frame(pca$rotation)
-p_dat$pop <- metadata
-
-metadata <- read.table("metadata.txt",sep='\t', header=FALSE)
-metadata <- metadata[,1]
-#metadata <- metadata[dupes]
-
-#dupes <- !duplicated.matrix(as.matrix(sample_table))
-
-plot_data$pop <- metadata
-
-# plotting the t-SNE
-ggplot(plot_data, aes(plot_data[,1], plot_data[,2], color = pop)) + geom_point()
-
-# plotting PCA data
-ggplot(p_dat, aes(PC1, PC2, color = pop)) + geom_point()
-
-multiple <- mmtsne(formatted_table[,-1])
-
+pca <- PCAfromPA(pa_genos, 2, TRUE)
+tSNE <- tSNEfromPA(pa_genos, 2, c.dup = TRUE)

@@ -15,35 +15,44 @@
 #' @examples
 #' counts <- colSums(ifelse(stickSNPS[, 4:ncol(stickSNPs)] == "NN", FALSE, TRUE))
 #' PCAfromPA(stickPA, 2, 2000, counts)
-PCAfromPA <- function(x, ecs, mc = FALSE, counts = FALSE){
+PCAfromPA <- function(x, ecs, c.dup = FALSE, mc = FALSE, counts = FALSE){
+  library(ggplot2)
   #grab metadata and data
   meta <- x[,1:ecs]
   x <- x[,(ecs+1):ncol(x)]
   
+  ##############################
+  #sanity checks...
+  if((mc != FALSE & !counts != FALSE) | (!mc != FALSE & counts != FALSE)){
+    stop("Counts and mc must either both be defined or neither must be.")
+  }
+  
+  ############################################
   #filter if requested
-  if(mc & counts){
+  if(mc != FALSE & counts != FALSE){
     keeps <- which(counts >= mc)
     x <- x[keeps,]
     meta <- meta[keeps,]
   }
-  else if ((mc & !counts) | (!mc & counts)){
-    stop("Counts and mc must either both be defined or neither must be.")
-  }
   
   #check for any duplicates, which need to be removed!
-  dups <- which(duplicated(x) | duplicated(x, fromLast=TRUE))
-  if(length(dups) > 0){
-    warning("Duplicates detected, indices:", dups, "\nRemoving all of these!")
-    x <- x[-dups,]
-    meta <- meta[-dups,]
+  if(c.dup){
+    cat("Checking for duplicates...\n")
+    dups <- which(duplicated(x) | duplicated(x, fromLast=TRUE))
+    if(length(dups) > 0){
+      cat("Duplicates detected, indices:", dups, "\nRemoving all of these!\n")
+      x <- x[-dups,]
+      meta <- meta[-dups,]
+    }
   }
   
-  pca_r <- prcomp(x)
+  cat("Preparing pca...\n")
+  pca_r <- prcomp(as.matrix(x))
   pca <- as.data.frame(pca_r$x)
   pca$pop <- meta$pop
   cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
   
-  
+  cat("Preparing plot...\n")
   out <- ggplot(pca, aes(PC1, PC2, color = pop)) + geom_point() + theme_bw() + 
     scale_color_manual(values = cbbPalette) + guides(color = guide_legend(title="Population"))
   
@@ -78,38 +87,54 @@ PCAfromPA <- function(x, ecs, mc = FALSE, counts = FALSE){
 #' @examples
 #' counts <- colSums(ifelse(stickSNPS[, 4:ncol(stickSNPs)] == "NN", FALSE, TRUE))
 #' PCAfromPA(stickPA, 2, 2000, counts)
-tSNEfromPA <- function(x, ecs, mc = FALSE, counts = FALSE, dims = 2, initial_dims = 50, perplex = FALSE, gravity = 0, iter = 5000, ...){
+tSNEfromPA <- function(x, ecs, dims = 2, initial_dims = 50, perplex = FALSE, gravity = 0, iter = 5000, 
+                       c.dup = FALSE, mc = FALSE, counts = FALSE, ...){
+  library(ggplot2)
   #grab metadata and data
   meta <- x[,1:ecs]
   x <- x[,(ecs+1):ncol(x)]
   x <- as.matrix(x)
   
+  ##############################
+  #sanity checks...
+  if((mc != FALSE & !counts != FALSE) | (!mc != FALSE & counts != FALSE)){
+    stop("Counts and mc must either both be defined or neither must be.")
+  }
+  
+  if(c.dup != FALSE){
+    warning("If there are duplicates in x, expect wierd results! Set c.dup to TRUE to check.\n")
+  }
+  
+  ##############################
   #filter if requested
   if(mc & counts){
     keeps <- which(counts >= mc)
     x <- x[keeps,]
     meta <- meta[keeps,]
   }
-  else if ((mc & !counts) | (!mc & counts)){
-    stop("Counts and mc must either both be defined or neither must be.")
-  }
   
-  #check for any duplicates, which need to be removed!
-  dups <- which(duplicated(x) | duplicated(x, fromLast=TRUE))
-  if(length(dups) > 0){
-    warning("Duplicates detected, indices:", dups, "\nRemoving all of these!")
-    x <- x[-dups,]
-    meta <- meta[-dups,]
+  
+  if(c.dup){
+    #check for any duplicates, which need to be removed!
+    cat("Checking for duplicates...\n")
+    dups <- which(duplicated(x) | duplicated(x, fromLast=TRUE))
+    if(length(dups) > 0){
+      cat("Duplicates detected, indices:", dups, "\nRemoving all of these!\n")
+      x <- x[-dups,]
+      meta <- meta[-dups,]
+    }
   }
   
   #get perplexity if not provided
   if(!perplex){
-    perp <- hbeta(x, beta = 1)
+    cat("Estimating perplexity...\n")
+    perp <- mmtsne::hbeta(x, beta = 1)
     perplex <- perp$H
   }
   
   #run the tSNE
-  tsne.out = Rtsne(x, dims, initial_dims, perplex, gravity, iter, check_duplicates = FALSE, verbose=TRUE, ...)
+  cat("Running tSNE...\n")
+  tsne.out = Rtsne::Rtsne(x, dims, initial_dims, perplex, gravity, iter, check_duplicates = FALSE, verbose=TRUE, ...)
   
   #saved_tsne2 <- tsne.out
   tsne_plot <- as.data.frame(tsne.out$Y)
@@ -121,7 +146,8 @@ tSNEfromPA <- function(x, ecs, mc = FALSE, counts = FALSE, dims = 2, initial_dim
   
   out <- ggplot(tsne_plot, aes(V1, V2, color = pop))  + geom_point() + theme_bw() +
     theme(axis.ticks = element_blank(), axis.title = element_blank(), axis.text = element_blank(),
-          panel.grid = element_blank()) +
+          panel.grid = element_blank()) + 
+    scale_color_manual(values = cbbPalette) +
     guides(color = guide_legend(title="Population"))
   return(list(tSNE = tsne.out, plot = out))
 }
