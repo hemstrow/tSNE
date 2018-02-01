@@ -15,8 +15,9 @@
 #' @examples
 #' counts <- colSums(ifelse(stickSNPS[, 4:ncol(stickSNPs)] == "NN", FALSE, TRUE))
 #' PCAfromPA(stickPA, 2, 2000, counts)
-PCAfromPA <- function(x, ecs, c.dup = FALSE, mc = FALSE, counts = FALSE){
+PCAfromPA <- function(x, ecs, do.plot = "pop", c.dup = FALSE, mc = FALSE, counts = FALSE){
   library(ggplot2)
+  
   #grab metadata and data
   meta <- x[,1:ecs]
   x <- x[,(ecs+1):ncol(x)]
@@ -25,6 +26,18 @@ PCAfromPA <- function(x, ecs, c.dup = FALSE, mc = FALSE, counts = FALSE){
   #sanity checks...
   if((mc != FALSE & !counts != FALSE) | (!mc != FALSE & counts != FALSE)){
     stop("Counts and mc must either both be defined or neither must be.")
+  }
+  
+  if(is.character(do.plot)){
+    if(length(do.plot) > 2){
+      stop("Only two plotting variables supported. For more, set do.plot to FALSE and plot manually.\n")
+    }
+  }
+  else if (do.plot != FALSE){
+    stop("do.plot must be either FALSE or between 1 and 2 variables to plot by.")
+  }
+  else if (!all(do.plot) %in% colnames(meta)){
+    stop("Plotting variables specified in do.plot must match column names present in the metadata of x.\n")
   }
   
   ############################################
@@ -48,13 +61,52 @@ PCAfromPA <- function(x, ecs, c.dup = FALSE, mc = FALSE, counts = FALSE){
   
   cat("Preparing pca...\n")
   pca_r <- prcomp(as.matrix(x))
-  pca <- as.data.frame(pca_r$x)
-  pca$pop <- meta$pop
-  cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  pca <- as.data.frame(pca_r$x) #grab the PCA vectors.
+  pca <- cbind(meta, pca)  #add metadata that is present in the input.
   
+  
+  #return just the pca data if the plot isn't requested, which is useful for complex plots.
+  if(!is.character(do.plot)){
+    return(list(raw = pca_r, pca = pca))
+  }
+  
+  ################################################
+  #construct plot.
   cat("Preparing plot...\n")
-  out <- ggplot(pca, aes(PC1, PC2, color = pop)) + geom_point() + theme_bw() + 
-    scale_color_manual(values = cbbPalette) + guides(color = guide_legend(title="Population"))
+  
+  #Categories (pops, fathers, mothers, ect.) are given in do.plot argument. Supports up to two!
+  #make the base plot, then add categories as color and fill.
+  out <- ggplot(pca, aes(PC1, PC2)) + theme_bw() #initialize plot
+  long <- FALSE #are any of the sets of categories really long?
+  
+  
+  #add variables.
+  if(length(do.plot) == 1){
+    v1 <- pca[,which(colnames(pca) == do.plot[1])] #get the factors
+    v1u <- length(unique(v1)) #number of categories
+    
+    out <- out + geom_point(aes(color = v1)) #add the factor
+    
+    if(v1u >= 8){long <- TRUE} #are there too many categories to color with the cbb palette?
+  }
+  
+  if(length(do.plot) == 2){
+    v1 <- pca[,which(colnames(pca) == do.plot[1])]
+    v2 <- pca[,which(colnames(pca) == do.plot[2])]
+    v1u <- length(unique(v1))
+    v2u <- length(unique(v2))
+    
+    out <- out + geom_point(aes(color = v1, fill = v2), pch = 21, size = 2.5, stroke = 1.25)
+    
+    if(v1u >= 8 | v2u >= 8){long <- TRUE}
+  }
+  
+  #use the color blind friendly palette if possible!
+  if(!long){
+    cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
+                    "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    out <- out + scale_color_manual(values = cbbPalette)
+  }
   
   return(list(raw = pca_r, plot = out))
 }
@@ -87,7 +139,8 @@ PCAfromPA <- function(x, ecs, c.dup = FALSE, mc = FALSE, counts = FALSE){
 #' @examples
 #' counts <- colSums(ifelse(stickSNPS[, 4:ncol(stickSNPs)] == "NN", FALSE, TRUE))
 #' PCAfromPA(stickPA, 2, 2000, counts)
-tSNEfromPA <- function(x, ecs, dims = 2, initial_dims = 50, perplex = FALSE, gravity = 0, iter = 5000, 
+tSNEfromPA <- function(x, ecs, do.plot = "pop", dims = 2, initial_dims = 50, 
+                       perplex = FALSE, gravity = 0, iter = 5000, 
                        c.dup = FALSE, mc = FALSE, counts = FALSE, ...){
   library(ggplot2)
   #grab metadata and data
@@ -101,8 +154,20 @@ tSNEfromPA <- function(x, ecs, dims = 2, initial_dims = 50, perplex = FALSE, gra
     stop("Counts and mc must either both be defined or neither must be.")
   }
   
-  if(c.dup != FALSE){
+  if(c.dup == FALSE){
     warning("If there are duplicates in x, expect wierd results! Set c.dup to TRUE to check.\n")
+  }
+  
+  if(is.character(do.plot)){
+    if(length(do.plot) > 2){
+      stop("Only two plotting variables supported. For more, set do.plot to FALSE and plot manually.\n")
+    }
+  }
+  else if (do.plot != FALSE){
+    stop("do.plot must be either FALSE or between 1 and 2 variables to plot by.")
+  }
+  else if (!all(do.plot) %in% colnames(meta)){
+    stop("Plotting variables specified in do.plot must match column names present in the metadata of x.\n")
   }
   
   ##############################
@@ -134,21 +199,59 @@ tSNEfromPA <- function(x, ecs, dims = 2, initial_dims = 50, perplex = FALSE, gra
   
   #run the tSNE
   cat("Running tSNE...\n")
-  tsne.out = Rtsne::Rtsne(x, dims, initial_dims, perplex, gravity, iter, check_duplicates = FALSE, verbose=TRUE, ...)
-  
+  tsne.out <- Rtsne::Rtsne(x, dims, initial_dims, perplex, 
+                           gravity, iter, check_duplicates = FALSE, 
+                           verbose=TRUE, ...)
   #saved_tsne2 <- tsne.out
-  tsne_plot <- as.data.frame(tsne.out$Y)
-  tsne_plot$pop <- meta$pop
-  #tsne_colors <- plot_colors[,1]
-  #tsne_plot$colors <- tsne_colors
-  cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  tsne_plot <- cbind(meta, as.data.frame(tsne.out$Y))
+  
+  if(!is.character(do.plot)){
+    return(list(raw = tsne.out, pca = tsne_plot))
+  }
+  
+  #############################
+  #plot the result
+  cat("Preparing plot...\n")
+  
+  #Categories (pops, fathers, mothers, ect.) are given in do.plot argument. Supports up to two!
+  #make the base plot, then add categories as color and fill.
+  out <- ggplot(tsne_plot, aes(V1, V2)) + theme_bw() + 
+    theme(axis.ticks = element_blank(), 
+          axis.title = element_blank(), 
+          axis.text = element_blank(),
+          panel.grid = element_blank()) #initialize plot
   
   
-  out <- ggplot(tsne_plot, aes(V1, V2, color = pop))  + geom_point() + theme_bw() +
-    theme(axis.ticks = element_blank(), axis.title = element_blank(), axis.text = element_blank(),
-          panel.grid = element_blank()) + 
-    scale_color_manual(values = cbbPalette) +
-    guides(color = guide_legend(title="Population"))
+  long <- FALSE #are any of the sets of categories really long?
+  
+  #add variables.
+  if(length(do.plot) == 1){
+    v1 <- tsne_plot[,which(colnames(tsne_plot) == do.plot[1])] #get the factors
+    v1u <- length(unique(v1)) #number of categories
+    
+    out <- out + geom_point(aes(color = v1)) #add the factor
+    
+    if(v1u >= 8){long <- TRUE} #are there too many categories to color with the cbb palette?
+  }
+  
+  if(length(do.plot) == 2){
+    v1 <- tsne_plot[,which(colnames(tsne_plot) == do.plot[1])]
+    v2 <- tsne_plot[,which(colnames(tsne_plot) == do.plot[2])]
+    v1u <- length(unique(v1))
+    v2u <- length(unique(v2))
+    
+    out <- out + geom_point(aes(color = v1, fill = v2), pch = 21, size = 2.5, stroke = 1.25)
+    
+    if(v1u >= 8 | v2u >= 8){long <- TRUE}
+  }
+  
+  #use the color blind friendly palette if possible!
+  if(!long){
+    cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
+                    "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+    out <- out + scale_color_manual(values = cbbPalette)
+  }
+  
   return(list(tSNE = tsne.out, plot = out))
 }
 
