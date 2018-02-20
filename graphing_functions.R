@@ -43,7 +43,6 @@ PCAfromPA <- function(x, ecs, mc = FALSE, counts = FALSE){
   return(list(raw = pca_r, plot = out))
 }
 
-PCAfromPA(sturg_matrix, ecs= 0)
 
 # tsne fxn using Rtsne, which uses Barnes-Hut simulation at theta>0 and returns more data than tsne()
 tsnefromPA <- function(data, dims = FALSE, initial_dims, perplex = FALSE, gravity = FALSE, iter = FALSE, ecs , mc = FALSE, counts = FALSE){
