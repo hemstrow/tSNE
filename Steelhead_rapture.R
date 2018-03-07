@@ -64,7 +64,12 @@ pa_genos <- cbind(data.frame(pop = meta[,2], fam = meta[,3], stringsAsFactors = 
 saveRDS(pa_genos, "pa_genos_flex.RDS")
 
 tSNE <- tSNEfromPA(pa_genos, 3, "fam", initial_dims = floor(length(unique(pa_genos$fam))/1.5))
-tSNE$plot <- tSNE$plot + guides(color = FALSE)
+tSNE$plot <- tSNE$plot #+ guides(color = FALSE) 
+tSNE$plot
+
+pca <- PCAfromPA(pa_genos, 3, "pop")
+pca$plot <- pca$plot + guides(color = FALSE)
+pca$plot
 
 #more stringent filtering
 flt_genos <- filter_snps(genos, 2, 0.05, 0.55, 500, .5)
