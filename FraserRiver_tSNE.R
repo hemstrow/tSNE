@@ -1,3 +1,5 @@
+setwd("../tSNE_data/")
+
 ###############################################
 #import and prepare data
 

@@ -36,7 +36,7 @@ setwd("../tSNE_data/chinook/")
 # format_input <- cbind(loci = 1:nrow(format_input), marker = lnam, format_input)
 # 
 # # Will's reformatting function
-# pa_genos <- format_snps(format_input, 2, output = 7, 
+# pa_genos <- format_snps(format_input, 2, output = 7,
 #                                input_form = "msat_3", miss = "000", lnames = lnam)
 # 
 # # Creating a new table of those 2011 juvs from the master table
