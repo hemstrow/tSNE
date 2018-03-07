@@ -5,7 +5,7 @@ setwd("~/GitHub/tSNE_data/stickleback")
 
 
 #format
-genos <- read.table("snps_numeric_filt.txt", header = T, stringsAsFactors = F, colClasses = "character")
+# genos <- read.table("snps_numeric_filt.txt", header = T, stringsAsFactors = F, colClasses = "character")
 
 
 # #full
@@ -50,22 +50,32 @@ pa_IX <- readRDS("pa_IX.RDS")
 #run PCA and tSNE on the full data set
 
 fpca <- PCAfromPA(pa_genos, 2)
+fpca$plot
 ftSNE <- tSNEfromPA(pa_genos, 2)
+ftSNE$plot
 
 ###############################
 #with XIX only!
 
 XIXpca <- PCAfromPA(pa_XIX, 2)
+XIXpca$plot
 XIXtSNE <- tSNEfromPA(pa_XIX, 2)
+XIXtSNE$plot
 
 ###############################
 #with noXIX
+colnames(pa_nXIX)[2] <- "Population"
 
-nXIXpca <- PCAfromPA(pa_nXIX, 2)
-nXIXtSNE <- tSNEfromPA(pa_nXIX, 2)
+nXIXpca <- PCAfromPA(pa_nXIX, 2, "Population")
+nXIXpca$plot
+nXIXtSNE <- tSNEfromPA(pa_nXIX, 2, "Population")
+nXIXtSNE$plot
 
 ###############################
 #inversion
-IXpca <- PCAfromPA(pa_IX, 2)
-IXtSNE <- tSNEfromPA(pa_IX, 2)
+colnames(pa_IX)[2] <- "Population"
 
+IXpca <- PCAfromPA(pa_IX, 2, "Population")
+IXpca$plot
+IXtSNE <- tSNEfromPA(pa_IX, 2, "Population")
+IXtSNE$plot

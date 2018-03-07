@@ -22,5 +22,8 @@ pa_genos <- readRDS("pa_genos.RDS")
 #######################################
 #run PCA and tSNE
 
-pca <- PCAfromPA(pa_genos, 2, TRUE)
-tSNE <- tSNEfromPA(pa_genos, 2, c.dup = TRUE)
+colnames(pa_genos)[2] <- "Population"
+pca <- PCAfromPA(pa_genos, 2, "Population", TRUE)
+pca$plot
+tSNE <- tSNEfromPA(pa_genos, 2, "Population", c.dup = TRUE)
+tSNE$plot
