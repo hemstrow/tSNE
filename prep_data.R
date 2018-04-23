@@ -369,7 +369,13 @@ pa.geno <- cbind(samp = pa.geno[,1], Population = gsub("[0-9]+", "", pa.geno$X1)
 #save
 saveRDS(pa.geno, "../tSNE_data/sturgeon/formatted_frasier_pa.RDS")
 
+#===================================================Sturgeon pedigree===================
+st.genos <- read.table("../tSNE_data/sturgeon/Training_Genotypes_tsne.txt")
+st.names <- read.table("../tSNE_data/sturgeon/tg_names.txt", header = F, stringsAsFactors = F)
+colnames(st.names) <- c("mom", "dad")
+st.genos <- cbind(st.names, st.genos)
 
+saveRDS(st.genos, "../tSNE_data/sturgeon/sturg_ped_pa.RDS")
 
 #===================================================Chinook IBS and Posteriors============
 setwd("../tSNE_data/steelhead/snps/RAPTURE/new/")
